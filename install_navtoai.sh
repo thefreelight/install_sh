@@ -103,6 +103,36 @@ check_requirements() {
     fi
 }
 
+# Check if Docker is installed and running
+check_docker() {
+    echo -e "${GREEN}Checking Docker installation...${PLAIN}"
+    
+    if command -v docker &> /dev/null; then
+        echo -e "${YELLOW}Docker is already installed${PLAIN}"
+        if systemctl is-active --quiet docker; then
+            echo -e "${GREEN}Docker service is running${PLAIN}"
+            DOCKER_INSTALLED=true
+        else
+            echo -e "${YELLOW}Docker is installed but not running${PLAIN}"
+            echo -e "${GREEN}Starting Docker service...${PLAIN}"
+            systemctl start docker
+            systemctl enable docker
+        fi
+    else
+        echo -e "${GREEN}Docker not found, proceeding with installation${PLAIN}"
+        DOCKER_INSTALLED=false
+    fi
+
+    # Check Docker Compose
+    if command -v docker-compose &> /dev/null; then
+        echo -e "${YELLOW}Docker Compose is already installed${PLAIN}"
+        COMPOSE_INSTALLED=true
+    else
+        echo -e "${GREEN}Docker Compose not found, proceeding with installation${PLAIN}"
+        COMPOSE_INSTALLED=false
+    fi
+}
+
 # Get user input for domain
 get_user_input() {
     DOMAIN_NAME=""
@@ -121,6 +151,12 @@ get_user_input() {
     echo -e "Frontend Port: ${GREEN}${FRONTEND_PORT}${PLAIN}"
     echo -e "Backend Port: ${GREEN}${BACKEND_PORT}${PLAIN}"
     echo -e "Database Port: ${GREEN}5432${PLAIN}"
+    echo -e "Redis Port: ${GREEN}6379${PLAIN}"
+    echo -e "\n${YELLOW}Service URLs after deployment:${PLAIN}"
+    echo -e "Frontend URL: ${GREEN}http://${DOMAIN_NAME}:${FRONTEND_PORT}${PLAIN}"
+    echo -e "Backend URL: ${GREEN}http://${DOMAIN_NAME}:${BACKEND_PORT}${PLAIN}"
+    echo -e "Database URL: ${GREEN}postgres://${DB_USER}:${DB_PASSWORD}@localhost:5432/${DB_NAME}${PLAIN}"
+    echo -e "Redis URL: ${GREEN}redis://localhost:6379${PLAIN}"
     
     while true; do
         echo -n "Continue with these settings? (y/n): "
@@ -135,16 +171,18 @@ get_user_input() {
 
 # Install Docker and Docker Compose
 install_docker() {
-    echo -e "${GREEN}Installing Docker and Docker Compose...${PLAIN}"
+    if [ "$DOCKER_INSTALLED" = false ]; then
+        echo -e "${GREEN}Installing Docker...${PLAIN}"
+        curl -fsSL https://get.docker.com | bash
+        systemctl start docker
+        systemctl enable docker
+    fi
     
-    # Install Docker
-    curl -fsSL https://get.docker.com | bash
-    systemctl start docker
-    systemctl enable docker
-    
-    # Install Docker Compose
-    curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-    chmod +x /usr/local/bin/docker-compose
+    if [ "$COMPOSE_INSTALLED" = false ]; then
+        echo -e "${GREEN}Installing Docker Compose...${PLAIN}"
+        curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        chmod +x /usr/local/bin/docker-compose
+    fi
 }
 
 # Clone projects
@@ -384,8 +422,14 @@ main() {
     check_root
     check_system
     check_requirements
+    check_docker
     get_user_input
-    install_docker
+    
+    # 只在需要时安装 Docker
+    if [ "$DOCKER_INSTALLED" = false ] || [ "$COMPOSE_INSTALLED" = false ]; then
+        install_docker
+    fi
+    
     clone_projects
     setup_backend
     setup_frontend
