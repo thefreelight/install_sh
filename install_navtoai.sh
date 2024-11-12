@@ -105,12 +105,12 @@ check_requirements() {
 
 # Get user input for domain
 get_user_input() {
-    while true; do
-        printf "Please enter your domain name (e.g., example.com): "
-        read DOMAIN_NAME
-        if [ -n "$DOMAIN_NAME" ]; then
-            break
-        else
+    DOMAIN_NAME=""
+    while [ -z "$DOMAIN_NAME" ]; do
+        echo -n "Please enter your domain name (e.g., example.com): "
+        read -r DOMAIN_NAME </dev/tty
+        
+        if [ -z "$DOMAIN_NAME" ]; then
             echo -e "${RED}Domain name cannot be empty${PLAIN}"
         fi
     done
@@ -123,10 +123,10 @@ get_user_input() {
     echo -e "Database Port: ${GREEN}5432${PLAIN}"
     
     while true; do
-        printf "Continue with these settings? (y/n): "
-        read confirm
+        echo -n "Continue with these settings? (y/n): "
+        read -r confirm </dev/tty
         case $confirm in
-            [Yy]* ) return 0;;
+            [Yy]* ) break;;
             [Nn]* ) exit 1;;
             * ) echo "Please answer y or n.";;
         esac
