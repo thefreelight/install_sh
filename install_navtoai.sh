@@ -42,16 +42,46 @@ check_root() {
 
 # System check
 check_system() {
-    if [ -f /etc/redhat-release ]; then
-        OS="centos"
-    elif grep -q -E -i "debian" /etc/issue; then
-        OS="debian"
-    elif grep -q -E -i "ubuntu" /etc/issue; then
-        OS="ubuntu"
+    # 检查是否是 Linux 系统
+    if [[ "$(uname)" != "Linux" ]]; then
+        echo -e "${RED}Error: This script only supports Linux systems!${PLAIN}"
+        exit 1
+    }
+
+    # 使用更可靠的方式检测发行版
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        OS=$ID
     else
-        echo -e "${RED}Error: Unsupported operating system!${PLAIN}"
+        echo -e "${RED}Error: Cannot detect OS type!${PLAIN}"
         exit 1
     fi
+
+    case "$OS" in
+        "ubuntu"|"debian"|"linuxmint")
+            PACKAGE_MANAGER="apt-get"
+            ;;
+        "centos"|"rhel"|"fedora"|"rocky"|"almalinux")
+            PACKAGE_MANAGER="yum"
+            ;;
+        "opensuse"|"sles")
+            PACKAGE_MANAGER="zypper"
+            ;;
+        "arch"|"manjaro")
+            PACKAGE_MANAGER="pacman"
+            ;;
+        *)
+            echo -e "${YELLOW}Warning: Unsupported distribution: $OS${PLAIN}"
+            echo -e "${YELLOW}The script will try to continue, but some features might not work correctly.${PLAIN}"
+            read -p "Do you want to continue? (y/n): " continue_install
+            if [[ "$continue_install" != "y" && "$continue_install" != "Y" ]]; then
+                exit 1
+            fi
+            ;;
+    esac
+
+    echo -e "${GREEN}Detected OS: $OS${PLAIN}"
+    echo -e "${GREEN}Package Manager: $PACKAGE_MANAGER${PLAIN}"
 }
 
 # Check system requirements
@@ -255,13 +285,26 @@ EOF
 setup_nginx() {
     echo -e "${GREEN}Configuring Nginx...${PLAIN}"
     
-    if [ "$OS" == "centos" ]; then
-        yum install -y nginx
-    else
-        apt-get update
-        apt-get install -y nginx
-    fi
-    
+    case "$PACKAGE_MANAGER" in
+        "apt-get")
+            apt-get update
+            apt-get install -y nginx
+            ;;
+        "yum")
+            yum install -y nginx
+            ;;
+        "zypper")
+            zypper install -y nginx
+            ;;
+        "pacman")
+            pacman -Sy --noconfirm nginx
+            ;;
+        *)
+            echo -e "${YELLOW}Warning: Unsupported package manager. Please install Nginx manually.${PLAIN}"
+            read -p "Press Enter to continue after installing Nginx..."
+            ;;
+    esac
+
     # Create Nginx configuration
     cat > /etc/nginx/conf.d/medusa.conf << EOF
 server {
