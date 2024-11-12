@@ -46,7 +46,7 @@ check_system() {
     if [[ "$(uname)" != "Linux" ]]; then
         echo -e "${RED}Error: This script only supports Linux systems!${PLAIN}"
         exit 1
-    }
+    fi
 
     # 使用更可靠的方式检测发行版
     if [ -f /etc/os-release ]; then
