@@ -106,11 +106,12 @@ check_requirements() {
 # Get user input for domain
 get_user_input() {
     while true; do
-        read -p "Please enter your domain name (e.g., example.com): " DOMAIN_NAME
-        if [ -z "$DOMAIN_NAME" ]; then
-            echo -e "${RED}Domain name cannot be empty${PLAIN}"
-        else
+        printf "Please enter your domain name (e.g., example.com): "
+        read DOMAIN_NAME
+        if [ -n "$DOMAIN_NAME" ]; then
             break
+        else
+            echo -e "${RED}Domain name cannot be empty${PLAIN}"
         fi
     done
 
@@ -121,10 +122,15 @@ get_user_input() {
     echo -e "Backend Port: ${GREEN}${BACKEND_PORT}${PLAIN}"
     echo -e "Database Port: ${GREEN}5432${PLAIN}"
     
-    read -p "Continue with these settings? (y/n): " confirm
-    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-        exit 1
-    fi
+    while true; do
+        printf "Continue with these settings? (y/n): "
+        read confirm
+        case $confirm in
+            [Yy]* ) return 0;;
+            [Nn]* ) exit 1;;
+            * ) echo "Please answer y or n.";;
+        esac
+    done
 }
 
 # Install Docker and Docker Compose
