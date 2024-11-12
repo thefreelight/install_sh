@@ -326,3 +326,26 @@ Password: ${DB_PASSWORD}
 Host: localhost or Server IP
 Port: 6379
 No password
+EOF
+}
+
+# Main function
+main() {
+    print_banner
+    check_root
+    check_system
+    check_requirements
+    get_user_input
+    install_docker
+    clone_projects
+    setup_backend
+    setup_frontend
+    setup_nginx
+    start_services
+    save_connection_info
+    
+    echo -e "${GREEN}Installation completed successfully!${PLAIN}"
+}
+
+# Execute main function
+main
