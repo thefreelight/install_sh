@@ -1,5 +1,6 @@
-# NavToAi Platform Installer
+# Jiffo Platform Installer
 
+## NavToAi Platform Installer
 ## Quick Install
 
 ```bash
